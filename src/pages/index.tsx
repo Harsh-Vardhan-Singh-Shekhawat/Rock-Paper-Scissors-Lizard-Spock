@@ -1,7 +1,14 @@
 import type { NextPage } from "next";
+import NavBar from "../components/NavBar";
+import CreateGame from "../components/CreateGame";
 
 const Home: NextPage = () => {
-  return <h1 className=" bg-red-500 ">Hello world!</h1>;
+  return (
+    <div>
+      <NavBar />
+      <CreateGame />
+    </div>
+  );
 };
 
 export default Home;
