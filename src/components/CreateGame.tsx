@@ -54,7 +54,9 @@ const CreateGame = () => {
       //user can only create a new game if this is true
       try {
         setCreateingGameLoader(true);
-        const provider = new ethers.BrowserProvider(walletClient?.transport);
+        const eipProvider = walletClient?.transport;
+        if (eipProvider === undefined) return;
+        const provider = new ethers.BrowserProvider(eipProvider);
         const signer = await provider.getSigner();
         const contractFactory = new ethers.ContractFactory(
           RPSContractData.abi,
