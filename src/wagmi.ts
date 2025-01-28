@@ -1,9 +1,9 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import { sepolia } from "wagmi/chains";
+import { sepolia, polygonAmoy } from "wagmi/chains";
 
 export const config = getDefaultConfig({
   appName: "Rock Paper Scissors Lizard Spock",
   projectId: "rock-paper-scissors-lizard-spock",
-  chains: [sepolia],
+  chains: [polygonAmoy],
   ssr: true,
 });
