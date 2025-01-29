@@ -45,8 +45,6 @@ const CreateGame = () => {
           const dbData = await fetchCurrentGame(account.address);
           if (dbData === undefined) {
             setCanCreateGame(true);
-          } else {
-            reset();
           }
         }
       } catch (e) {
@@ -60,6 +58,10 @@ const CreateGame = () => {
   const createGame = async () => {
     if (canCreateGame) {
       //user can only create a new game if this is true
+      if (move === Move.Null) {
+        toast.error("Choose a move!");
+        return;
+      }
       try {
         setCreateingGameLoader(true);
         const eipProvider = walletClient?.transport;
@@ -103,12 +105,15 @@ const CreateGame = () => {
           valueInWei.toString()
         );
         toast.success("Game Created Successfully!");
+        reset();
         setCanCreateGame(false);
         setCreateingGameLoader(false);
       } catch (error) {
         console.error(error);
         setCreateingGameLoader(false);
       }
+    } else {
+      toast.error("Already in a Game!");
     }
   };
 

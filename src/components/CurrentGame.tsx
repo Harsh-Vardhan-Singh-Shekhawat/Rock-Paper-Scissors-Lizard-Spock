@@ -135,7 +135,7 @@ const CurrentGame = () => {
       }
     };
 
-    const intervalId = setInterval(getDataValues, 8000);
+    const intervalId = setInterval(getDataValues, 5000);
     return () => clearInterval(intervalId);
   }, [account.status, createdByData, gameData]);
 
@@ -181,13 +181,17 @@ const CurrentGame = () => {
       }
     };
 
-    const intervalId = setInterval(getDataValues, 8000);
+    const intervalId = setInterval(getDataValues, 5000);
     return () => clearInterval(intervalId);
   }, [account.status, gameCreatedForYou]);
 
   const play = async () => {
     try {
       if (gameCreatedForYou !== undefined && account.status === "connected") {
+        if (move === Move.Null) {
+          toast.error("Choose a move!");
+          return;
+        }
         setPlayLoader(true);
         const hash = await walletClient?.writeContract({
           abi: RPSContractData.abi,
@@ -278,6 +282,7 @@ const CurrentGame = () => {
           gameCreatedForYou.createdBy,
           gameCreatedForYou.createdFor
         );
+
         toast.success("Timeout successfully!");
         reset();
         setJ1TimeoutLoader(false);
