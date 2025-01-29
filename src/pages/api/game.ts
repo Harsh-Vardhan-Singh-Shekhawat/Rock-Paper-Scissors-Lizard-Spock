@@ -34,7 +34,7 @@ export default async function handler(
       try {
         console.log("NEW GAME POST REQUEST");
         const gameData = req.body.data;
-        console.log("game data : ", gameData);
+
         const game = await Game.create(gameData);
         res.status(201).json({ success: true, data: game });
         console.log("SUCCESS");
@@ -76,8 +76,7 @@ export default async function handler(
     case "REMOVE":
       try {
         const { createdBy, createdFor } = req.body.data;
-        console.log("cread by : ", createdBy);
-        console.log("cread for : ", createdFor);
+
         console.log("GAME REMOVE REQUEST");
         const game = await Game.deleteOne({
           createdBy: createdBy,
@@ -119,6 +118,64 @@ export default async function handler(
           res.status(404).json({
             success: false,
             message: "Game not found",
+          });
+        }
+      } catch (error) {
+        res
+          .status(400)
+          .json({ success: false, message: "Error updating game" });
+      }
+      break;
+
+    case "J1TIMEOUT":
+      try {
+        const { createdBy, createdFor } = req.body.data;
+
+        console.log("J1 TIMEOUT UPDATE REQUEST");
+        const game = await Game.findOneAndUpdate(
+          { createdFor: createdFor, createdBy: createdBy },
+          { $set: { j1Timeout: true } },
+          { new: true }
+        );
+        if (game) {
+          console.log("SUCCESS");
+          res
+            .status(200)
+            .json({ success: true, message: "Game updated", game });
+        } else {
+          console.log("No game found or already played.");
+          res.status(404).json({
+            success: false,
+            message: "Game not found or already played",
+          });
+        }
+      } catch (error) {
+        res
+          .status(400)
+          .json({ success: false, message: "Error updating game" });
+      }
+      break;
+
+    case "J2TIMEOUT":
+      try {
+        const { createdBy, createdFor } = req.body.data;
+
+        console.log("J2 TIMEOUT UPDATE REQUEST");
+        const game = await Game.findOneAndUpdate(
+          { createdFor: createdFor, createdBy: createdBy },
+          { $set: { j2Timeout: true } },
+          { new: true }
+        );
+        if (game) {
+          console.log("SUCCESS");
+          res
+            .status(200)
+            .json({ success: true, message: "Game updated", game });
+        } else {
+          console.log("No game found or already played.");
+          res.status(404).json({
+            success: false,
+            message: "Game not found or already played",
           });
         }
       } catch (error) {

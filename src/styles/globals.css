@@ -14,3 +14,43 @@ a {
 * {
     box-sizing: border-box;
 }
+
+.heading {
+    @apply font-bold text-2xl;
+}
+
+.active-user {
+    @apply border rounded-sm border-black m-2 py-1;
+}
+
+.input-tag {
+    @apply border w-full rounded-sm border-black px-2 mt-2 mb-4 py-1;
+}
+
+.sub-heading {
+    @appply font-normal test-sm;
+}
+
+.button-tag {
+    @apply border w-full bg-cyan-500 text-white rounded-sm py-1 mb-4;
+}
+
+.loader {
+    width: 42px;
+    height: 42px;
+    border: 2.5px solid #d0cece;
+    border-bottom-color: var(--color-cyan-500);
+    border-radius: 50%;
+    display: inline-block;
+    box-sizing: border-box;
+    animation: rotation 0.5s linear infinite;
+}
+
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}

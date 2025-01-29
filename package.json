@@ -17,6 +17,7 @@
     "postcss": "^8.5.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.5.1",
     "tailwindcss": "^4.0.0",
     "viem": "2.21.55",
     "wagmi": "^2.14.7"

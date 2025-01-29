@@ -9,6 +9,7 @@ import {
 import _default from "next/dist/build/templates/pages";
 import { ethers } from "ethers";
 import RPSContractData from "../utils/RPSContractData";
+import toast from "react-hot-toast";
 
 interface ActiveUser {
   _id: string;
@@ -39,23 +40,20 @@ const CreateGame = () => {
       try {
         if (account.status !== "connected") return;
         const createGameData = localStorage.getItem("game");
-        console.log("game data ");
-        console.log(createGameData);
         // user haven't createad a game yet
         if (createGameData === null) {
           const dbData = await fetchCurrentGame(account.address);
-          console.log("db data : ", dbData);
           if (dbData === undefined) {
             setCanCreateGame(true);
+          } else {
+            reset();
           }
         }
       } catch (e) {
         console.log("error : ", e);
       }
     };
-    configCanUserCreateGame();
-
-    const intervalId = setInterval(configCanUserCreateGame, 8000);
+    const intervalId = setInterval(configCanUserCreateGame, 4000);
     return () => clearInterval(intervalId);
   }, [account.status]);
 
@@ -104,7 +102,8 @@ const CreateGame = () => {
           await response.getAddress(),
           valueInWei.toString()
         );
-        reset();
+        toast.success("Game Created Successfully!");
+        setCanCreateGame(false);
         setCreateingGameLoader(false);
       } catch (error) {
         console.error(error);
@@ -115,6 +114,7 @@ const CreateGame = () => {
 
   const generateSalt = async () => {
     setSalt(generateRandomUint256());
+    toast.success("Salt Created!");
   };
 
   useEffect(() => {
@@ -130,20 +130,20 @@ const CreateGame = () => {
         console.log(err);
       }
     };
-    fetchActiveUsers();
     const intervalId = setInterval(fetchActiveUsers, 8000);
-
     return () => clearInterval(intervalId);
   }, []);
 
   return (
     <div className="grid grid-cols-2  ">
       <div>
-        <div>Active Users</div>
+        <div className="heading">Active Users</div>
+        <p className="font-light text-sm">Select user to play game with.</p>
+
         {activeUsers.length === 0 ? (
           <p>No active users found.</p>
         ) : (
-          <div className="flex flex-col">
+          <div className="flex flex-col mr-12 ">
             {activeUsers.map((user) => (
               <button
                 key={user._id}
@@ -151,37 +151,40 @@ const CreateGame = () => {
                   if (user.address === account.address) return;
                   setOtherPlayer(user.address);
                 }}
+                className="active-user"
               >
                 {user.address === account.address
-                  ? user.address + " (you)"
+                  ? user.address + " (YOU)"
                   : user.address}
               </button>
             ))}
           </div>
         )}
       </div>
-      <div>
-        <div>Create New Game</div>
+      <div className="mr-[120px]">
+        <div className="heading mb-6 ">Create New Game</div>
         <div>
-          <p>Other Player Address</p>
+          <p className="sub-heading">Other Player Address</p>
           <input
             type="text"
             value={otherPlayer}
             onChange={(e: any) => {
               setOtherPlayer(e.target.value);
             }}
+            className="input-tag"
             placeholder="0x"
           />
         </div>
 
         <div>
-          <p>Choose your move</p>
+          <p className="sub-heading">Choose your move</p>
           <select
             id="moveDropdown"
             value={move}
             onChange={(e: any) => {
               setMove(e.target.value);
             }}
+            className="input-tag"
           >
             {Object.keys(Move)
               .filter((key) => isNaN(Number(key))) // Filter out numeric keys
@@ -194,13 +197,20 @@ const CreateGame = () => {
         </div>
 
         <div>
-          <p>Salt Value</p>
-          <input placeholder="--" value={salt?.toString()} />
-          <button onClick={generateSalt}>GEMERATE SALT</button>
+          <p className="sub-heading">Salt Value</p>
+          <input
+            placeholder="--"
+            value={salt?.toString()}
+            className="input-tag"
+            disabled={true}
+          />
+          <button onClick={generateSalt} className="button-tag">
+            GEMERATE SALT
+          </button>
         </div>
 
         <div>
-          <p>Enter ETH amount to stake</p>
+          <p className="sub-heading">Enter ETH amount to stake</p>
           <input
             type="number"
             value={ethValue}
@@ -208,16 +218,17 @@ const CreateGame = () => {
               setEthValue(e.target.value);
             }}
             placeholder="0.0"
+            className="input-tag"
           />
         </div>
-        <div>
+        <div className="flex flex-col items-center">
           {creatingGameLoader ? (
             <div>
-              <span></span>
+              <span className="loader"></span>
             </div>
           ) : (
-            <button type="submit" onClick={createGame}>
-              {canCreateGame ? "Create Game" : "Game already created"}
+            <button type="submit" onClick={createGame} className="button-tag">
+              {canCreateGame ? "CREATE GAME" : "GAME ALREADY CREATED"}
             </button>
           )}
         </div>

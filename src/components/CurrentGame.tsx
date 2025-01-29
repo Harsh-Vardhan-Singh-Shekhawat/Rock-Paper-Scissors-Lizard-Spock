@@ -3,18 +3,17 @@ import {
   fetchCurrentGame,
   handlePlayedGame,
   removeGame,
+  updateJ1Timeout,
+  updateJ2Timeout,
   updateWinner,
 } from "../utils/Helpers";
 import { IGame } from "../utils/Game";
-import {
-  useAccount,
-  useBalance,
-  usePublicClient,
-  useWalletClient,
-} from "wagmi";
+import { useAccount, usePublicClient, useWalletClient } from "wagmi";
 import Move from "../utils/Move";
 import RPSContractData from "../utils/RPSContractData";
 import { waitForTransactionReceipt } from "viem/actions";
+import { ethers } from "ethers";
+import toast from "react-hot-toast";
 
 interface IGameSelfCreated {
   move: string;
@@ -31,10 +30,15 @@ const CurrentGame = () => {
   const [move, setMove] = useState<Move>();
   const [createdByData, setCreatedByData] = useState<IGameSelfCreated>();
   const [gameData, setGameData] = useState<IGame>();
-  const { data: walletClient } = useWalletClient();
   const [gameCreatedForYou, setGameCreatedForYou] = useState<IGame>();
+  const { data: walletClient } = useWalletClient();
   const [startTime, setStartTime] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
+
+  const [j2TimeoutLoader, setJ2TimeoutLoader] = useState(false);
+  const [j1TimeoutLoader, setJ1TimeoutLoader] = useState(false);
+  const [solveLoader, setSolveLoader] = useState(false);
+  const [playLoader, setPlayLoader] = useState(false);
 
   const reset = () => {
     setMove(undefined);
@@ -74,9 +78,6 @@ const CurrentGame = () => {
     if (gameCreatedForYou !== undefined) {
       setStartTime(new Date(gameCreatedForYou.time).getTime());
     } else if (createdByData !== undefined) {
-      console.log("deplyment time");
-      console.log("create by data : ", createdByData);
-      console.log(createdByData.deploymentTime);
       setStartTime(new Date(createdByData.deploymentTime).getTime());
     }
   }, [createdByData, gameCreatedForYou]);
@@ -107,73 +108,87 @@ const CurrentGame = () => {
     };
   }, []);
 
+  // this is for the current user who have created the new game
   useEffect(() => {
-    const getGame = async () => {
+    const getDataValues = async () => {
       if (account.status === "connected") {
-        console.log("cread by data : ", createdByData);
         if (createdByData !== undefined) {
-          console.log("self");
-          const gameData = await fetchCurrentGame(createdByData.otherPlayer);
-          if (gameData === undefined) return;
-          console.log("game data from db user a : ", gameData);
-          // show notification based on you loose or fail and then remove the entry from db
-          if (gameData.winner !== null) {
-            if (gameData.winner === account.address) {
-              // show notification you won
-              console.log("user A won");
-            } else {
-              // show notification you lose
-              console.log("user A lose");
+          const gameDataFetched = await fetchCurrentGame(
+            createdByData.otherPlayer
+          );
+          if (gameData !== undefined) {
+            if (!gameData.isPlayed && gameDataFetched.isPlayed) {
+              toast.success("Other player has played his move!");
             }
-            setTimeout(() => {
-              const removeData = async () => {
-                await removeGame(account.address, createdByData.otherPlayer);
-              };
-              removeData;
-            }, 10000);
+            // timeout session left - if timeout then remove this things locally
+            if (!gameData.j1Timeout && gameDataFetched.j1Timeout) {
+              toast.error("You take too much time to solve!");
+              localStorage.clear();
+              await removeGame(account.address, createdByData.otherPlayer);
+              reset();
+              return;
+            }
+          }
 
-            reset();
-          }
-          setGameData(gameData);
-        } else {
-          console.log("hello world");
-          const gameData = await fetchCurrentGame(account.address);
-          if (gameData === undefined) return;
-          console.log("game data from db user b : ", gameData);
-          // if winner exists then delete the db entry and show notificaiton
-          if (gameData.winner !== null) {
-            if (gameData.winner === account.address) {
-              // show notification you won
-              console.log("user B won");
-            } else {
-              // show notification you lose
-              console.log("user B lose");
-            }
-            if (gameCreatedForYou !== undefined)
-              setTimeout(() => {
-                const removeData = async () => {
-                  await removeGame(
-                    gameCreatedForYou?.createdBy,
-                    gameCreatedForYou?.createdFor
-                  );
-                };
-                removeData;
-              }, 10000);
-            reset();
-          }
-          setGameCreatedForYou(gameData);
+          setGameData(gameDataFetched);
         }
       }
     };
-    getGame();
-    const intervalId = setInterval(getGame, 8000);
 
+    const intervalId = setInterval(getDataValues, 8000);
     return () => clearInterval(intervalId);
-  }, [account.status, createdByData, gameCreatedForYou]);
+  }, [account.status, createdByData, gameData]);
+
+  // this is for the other user for whom game is created
+  useEffect(() => {
+    const getDataValues = async () => {
+      if (account.status === "connected" && createdByData === undefined) {
+        const gameDataFetched = await fetchCurrentGame(account.address);
+        if (gameDataFetched === undefined) return;
+
+        if (gameCreatedForYou === undefined) toast.success("New Game for you!");
+        if (gameCreatedForYou !== undefined) {
+          if (
+            gameCreatedForYou.winner === null &&
+            gameDataFetched.winner !== null
+          ) {
+            if (gameDataFetched.winner === account.address) {
+              // show notification you won user b
+              toast.success("You Won!");
+            } else {
+              // show notification you lose user b
+              toast.error("You Lose!");
+            }
+            await removeGame(
+              gameDataFetched.createdBy,
+              gameDataFetched.createdFor
+            );
+            reset();
+            return;
+          }
+          if (!gameCreatedForYou.j2Timeout && gameDataFetched.j2Timeout) {
+            toast.error("You took too much time to play!");
+            await removeGame(
+              gameCreatedForYou.createdBy,
+              gameCreatedForYou.createdFor
+            );
+            reset();
+            return;
+          }
+        }
+
+        setGameCreatedForYou(gameDataFetched);
+      }
+    };
+
+    const intervalId = setInterval(getDataValues, 8000);
+    return () => clearInterval(intervalId);
+  }, [account.status, gameCreatedForYou]);
 
   const play = async () => {
     try {
       if (gameCreatedForYou !== undefined && account.status === "connected") {
+        setPlayLoader(true);
         const hash = await walletClient?.writeContract({
           abi: RPSContractData.abi,
           functionName: "play",
@@ -186,8 +201,11 @@ const CurrentGame = () => {
           await waitForTransactionReceipt(walletClient, { hash: hash });
         }
         await handlePlayedGame(account.address);
+        toast.success("You played successfully, wait for owner to solve this!");
+        setPlayLoader(false);
       }
     } catch (e) {
+      setPlayLoader(false);
       console.log("error while sending play tx : ", e);
     }
   };
@@ -195,6 +213,7 @@ const CurrentGame = () => {
   const solve = async () => {
     try {
       if (createdByData !== undefined && account.status === "connected") {
+        setSolveLoader(true);
         const balanceBefore = await client?.getBalance({
           address: account.address,
         });
@@ -217,9 +236,11 @@ const CurrentGame = () => {
         if (balanceAfter !== undefined && balanceBefore !== undefined) {
           if (balanceAfter > balanceBefore) {
             // user a wins show notification and set winner in db
+            toast.success("You Won!");
             await updateWinner(account.address, createdByData.otherPlayer); // winner, address (createdFor)
           } else {
             // user b wins set winner in db
+            toast.error("You Lose!");
             await updateWinner(
               createdByData.otherPlayer,
               createdByData.otherPlayer
@@ -227,11 +248,13 @@ const CurrentGame = () => {
           }
         }
         localStorage.clear();
-
+        reset();
+        setSolveLoader(false);
         // remove data from local storage and database
         //based on balance update send notification who is the winner
       }
     } catch (e) {
+      setSolveLoader(false);
       console.log("error while sending solve tx : ", e);
     }
   };
@@ -240,6 +263,7 @@ const CurrentGame = () => {
   const j1Timeout = async () => {
     try {
       if (gameCreatedForYou !== undefined && account.status === "connected") {
+        setJ1TimeoutLoader(true);
         const hash = await walletClient?.writeContract({
           abi: RPSContractData.abi,
           functionName: "j1Timeout",
@@ -249,8 +273,17 @@ const CurrentGame = () => {
         if (walletClient && hash !== undefined) {
           await waitForTransactionReceipt(walletClient, { hash: hash });
         }
+
+        await updateJ1Timeout(
+          gameCreatedForYou.createdBy,
+          gameCreatedForYou.createdFor
+        );
+        toast.success("Timeout successfully!");
+        reset();
+        setJ1TimeoutLoader(false);
       }
     } catch (e) {
+      setJ1TimeoutLoader(false);
       console.log("error while sending solve tx : ", e);
     }
   };
@@ -259,6 +292,7 @@ const CurrentGame = () => {
   const j2Timeout = async () => {
     try {
       if (createdByData !== undefined && account.status === "connected") {
+        setJ2TimeoutLoader(true);
         const hash = await walletClient?.writeContract({
           abi: RPSContractData.abi,
           functionName: "j2Timeout",
@@ -268,41 +302,83 @@ const CurrentGame = () => {
         if (walletClient && hash !== undefined) {
           await waitForTransactionReceipt(walletClient, { hash: hash });
         }
+        await updateJ2Timeout(account.address, createdByData.otherPlayer);
+        localStorage.clear();
+        reset();
+        toast.success("Timeout successfully!");
+        setJ2TimeoutLoader(false);
       }
     } catch (e) {
+      setJ2TimeoutLoader(false);
       console.log("error while sending solve tx : ", e);
     }
   };
 
+  if (createdByData === undefined && gameCreatedForYou === undefined) {
+    return (
+      <div>
+        <div className="heading">Current Games</div>
+        <div className="font-light text-sm">No Active Game</div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <div>current games</div>
-
+      <div className="heading">Current Games</div>
       <div>
         {createdByData !== undefined && (
           <div>
-            <div>your move</div>
-            <div> {createdByData.move} </div>
-            <div> your salt </div>
-            <div> {createdByData.salt} </div>
-            <div> other player </div>
+            <div className="sub-heading mt-2 ">Your Move</div>
+            <div className="input-tag text-center "> {createdByData.move} </div>
+            <div className="sub-heading"> Your Salt </div>
+            <div className="input-tag text-center"> {createdByData.salt} </div>
+            <div className="sub-heading"> Other Player Address </div>
 
-            <div> {createdByData.otherPlayer} </div>
-            {timeLeft !== 0 ? (
-              <div>time left : {timeLeft} seconds</div>
-            ) : (
-              <button onClick={j2Timeout}>
-                time out if user a failed to respond
-              </button>
+            <div className="input-tag text-center">
+              {createdByData.otherPlayer}
+            </div>
+
+            {timeLeft === 0 && !gameData?.isPlayed && (
+              <div className="flex flex-col items-center">
+                {j2TimeoutLoader ? (
+                  <div>
+                    <span className="loader"></span>
+                  </div>
+                ) : (
+                  <button onClick={j2Timeout} className="button-tag">
+                    TIMEOUT
+                  </button>
+                )}
+              </div>
             )}
-            {/* if user played then this timeout won't work  */}
+
+            {timeLeft !== 0 && !gameData?.isPlayed && (
+              <div className="text-center my-2 font-semibold">
+                TIME LEFT FOR TIMEOUT : {timeLeft}s
+              </div>
+            )}
+
             <br />
             <div>
-              {gameData?.isPlayed
-                ? "game is played by other user you can find the winnder"
-                : "other user haven't played the game yet"}
+              {gameData?.isPlayed ? (
+                <div className="flex flex-col items-center">
+                  {solveLoader ? (
+                    <div>
+                      <span className="loader"></span>
+                    </div>
+                  ) : (
+                    <button onClick={solve} className="button-tag">
+                      SOLVE
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center font-semibold">
+                  !! THE OTHER PLAYER HASN'T PLAYED THE GAME YET !!
+                </div>
+              )}
             </div>
-            <button onClick={solve}>find winner</button>
           </div>
         )}
       </div>
@@ -310,20 +386,27 @@ const CurrentGame = () => {
       <div>
         {gameCreatedForYou !== undefined && (
           <div>
-            <div> created by </div>
-            <div> {gameCreatedForYou?.createdBy} </div>
-            <div>contract address </div>
-            <div> {gameCreatedForYou?.contractAddress} </div>
-            <div>eth value to stake</div>
-            <div>{gameCreatedForYou?.ethValue}</div>
+            <div className="sub-heading"> Game Created By </div>
+            <div className="input-tag text-center ">
+              {gameCreatedForYou?.createdBy}
+            </div>
+            <div className="sub-heading">Contract Address</div>
+            <div className="input-tag text-center">
+              {gameCreatedForYou?.contractAddress}
+            </div>
+            <div className="sub-heading">ETH value to stake</div>
+            <div className="input-tag text-center">
+              {ethers.formatEther(gameCreatedForYou?.ethValue) + " ETH"}
+            </div>
             <div>
-              <p>Choose your move</p>
+              <p className="sub-heading">Choose your move</p>
               <select
                 id="moveDropdown"
                 value={move}
                 onChange={(e: any) => {
                   setMove(e.target.value);
                 }}
+                className="input-tag"
               >
                 {Object.keys(Move)
                   .filter((key) => isNaN(Number(key))) // Filter out numeric keys
@@ -334,14 +417,38 @@ const CurrentGame = () => {
                   ))}
               </select>
             </div>
-            <button onClick={play}>play</button>
-            <br />
-            {timeLeft !== 0 ? (
-              <div>time left : {timeLeft} seconds</div>
-            ) : (
-              <button onClick={j1Timeout}>
-                time out if user a failed to respond
-              </button>
+            {!gameCreatedForYou.isPlayed && (
+              <div className="flex flex-col items-center">
+                {playLoader ? (
+                  <div>
+                    <span className="loader"></span>
+                  </div>
+                ) : (
+                  <button onClick={play} className="button-tag">
+                    PLAY
+                  </button>
+                )}
+              </div>
+            )}
+
+            {timeLeft !== 0 && gameCreatedForYou.isPlayed && (
+              <div className="text-center my-2 font-semibold">
+                TIME LEFT FOR TIMEOUT : {timeLeft}s
+              </div>
+            )}
+
+            {timeLeft === 0 && gameCreatedForYou.isPlayed && (
+              <div className="flex flex-col items-center">
+                {j1TimeoutLoader ? (
+                  <div>
+                    <span className="loader"></span>
+                  </div>
+                ) : (
+                  <button onClick={j1Timeout} className="button-tag">
+                    TIMEOUT
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}

@@ -8,6 +8,8 @@ export interface IGame extends Document {
   ethValue: string;
   isPlayed: boolean;
   winner: string;
+  j1Timeout: boolean;
+  j2Timeout: boolean;
 }
 
 const GameSchema: Schema<IGame> = new Schema({
@@ -18,6 +20,8 @@ const GameSchema: Schema<IGame> = new Schema({
   ethValue: { type: String, required: true },
   isPlayed: { type: Boolean, default: false }, //update this when user b played the game and notify user a to find winner
   winner: { type: String, default: null },
+  j1Timeout: { type: Boolean, default: false },
+  j2Timeout: { type: Boolean, default: false },
 });
 
 const Game: Model<IGame> =
