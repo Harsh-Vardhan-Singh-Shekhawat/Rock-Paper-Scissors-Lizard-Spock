@@ -33,16 +33,98 @@ export default async function handler(
     case "POST":
       try {
         console.log("NEW GAME POST REQUEST");
-        console.log(req.body.data);
         const gameData = req.body.data;
+        console.log("game data : ", gameData);
         const game = await Game.create(gameData);
         res.status(201).json({ success: true, data: game });
         console.log("SUCCESS");
       } catch (error) {
-        console.log(error);
         res
           .status(400)
           .json({ success: false, message: "Error creating game" });
+      }
+      break;
+
+    case "PUT":
+      try {
+        const { address } = req.body.data;
+        console.log("GAME UPDATE PUT REQUEST");
+        const game = await Game.findOneAndUpdate(
+          { createdFor: address, isPlayed: false }, // Find game where `isPlayed` is `false`
+          { $set: { isPlayed: true } }, // Update `isPlayed` to `true`
+          { new: true } // Return the updated document
+        );
+        if (game) {
+          console.log("SUCCESS");
+          res
+            .status(200)
+            .json({ success: true, message: "Game updated", game });
+        } else {
+          console.log("No game found or already played.");
+          res.status(404).json({
+            success: false,
+            message: "Game not found or already played",
+          });
+        }
+      } catch (error) {
+        res
+          .status(400)
+          .json({ success: false, message: "Error updating game" });
+      }
+      break;
+
+    case "REMOVE":
+      try {
+        const { createdBy, createdFor } = req.body.data;
+        console.log("cread by : ", createdBy);
+        console.log("cread for : ", createdFor);
+        console.log("GAME REMOVE REQUEST");
+        const game = await Game.deleteOne({
+          createdBy: createdBy,
+          createdFor: createdFor,
+        });
+
+        if (game !== null || game !== undefined) {
+          console.log("SUCCESS");
+          res.status(200).json({ success: true, message: "Game removed" });
+        } else {
+          res.status(404).json({
+            success: false,
+            message: "game not found",
+          });
+        }
+      } catch (error) {
+        res
+          .status(400)
+          .json({ success: false, message: "Error updating game" });
+      }
+      break;
+    case "WINNER":
+      try {
+        const { winner, address } = req.body.data;
+        console.log("WINNER UPDATE REQUEST");
+        console.log("winner : ", winner);
+        console.log("address : ", address);
+        const game = await Game.findOneAndUpdate(
+          { createdFor: address, isPlayed: true },
+          { $set: { winner: winner } },
+          { new: true }
+        );
+        if (game) {
+          console.log("SUCCESS");
+          res
+            .status(200)
+            .json({ success: true, message: "Game updated", game });
+        } else {
+          res.status(404).json({
+            success: false,
+            message: "Game not found",
+          });
+        }
+      } catch (error) {
+        res
+          .status(400)
+          .json({ success: false, message: "Error updating game" });
       }
       break;
   }

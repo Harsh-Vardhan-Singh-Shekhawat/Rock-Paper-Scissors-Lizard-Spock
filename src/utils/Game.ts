@@ -5,6 +5,9 @@ export interface IGame extends Document {
   createdBy: string;
   createdFor: string;
   contractAddress: string;
+  ethValue: string;
+  isPlayed: boolean;
+  winner: string;
 }
 
 const GameSchema: Schema<IGame> = new Schema({
@@ -12,6 +15,9 @@ const GameSchema: Schema<IGame> = new Schema({
   createdBy: { type: String, required: true },
   createdFor: { type: String, required: true },
   contractAddress: { type: String, required: true },
+  ethValue: { type: String, required: true },
+  isPlayed: { type: Boolean, default: false }, //update this when user b played the game and notify user a to find winner
+  winner: { type: String, default: null },
 });
 
 const Game: Model<IGame> =

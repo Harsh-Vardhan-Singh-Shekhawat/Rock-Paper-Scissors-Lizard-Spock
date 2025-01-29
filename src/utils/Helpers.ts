@@ -34,7 +34,7 @@ export const removeUnActiveUser = async (address: string) => {
   }
 };
 
-export const generateRandomUint256 = () => {
+export const generateRandomUint256 = (): bigint => {
   const array = new Uint8Array(32);
   window.crypto.getRandomValues(array);
 
@@ -68,7 +68,7 @@ export const fetchCurrentGame = async (address: string) => {
     if (data?.data?.time !== undefined) {
       return data.data;
     } else {
-      return true;
+      return undefined;
     }
   } catch (err) {
     console.error("Error fetching current game:", err);
@@ -79,7 +79,8 @@ export const handleNewGame = async (
   time: string,
   createdBy: string,
   createdFor: string,
-  contractAddress: string
+  contractAddress: string,
+  ethValue: string
 ) => {
   try {
     const response = await fetch("/api/game", {
@@ -89,11 +90,80 @@ export const handleNewGame = async (
       },
       body: JSON.stringify({
         type: "POST",
-        data: { time, createdBy, createdFor, contractAddress },
+        data: {
+          time,
+          createdBy,
+          createdFor,
+          contractAddress,
+          ethValue,
+          isPlayed: false,
+          winner: null,
+        },
       }),
     });
     console.log(JSON.stringify(response));
   } catch (error) {
     console.error(error);
   }
+};
+
+export const handlePlayedGame = async (address: string) => {
+  try {
+    const response = await fetch("/api/game", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "PUT",
+        data: { address },
+      }),
+    });
+    console.log(JSON.stringify(response));
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const removeGame = async (createdBy: string, createdFor: string) => {
+  try {
+    const response = await fetch("/api/game", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "REMOVE",
+        data: { createdBy: createdBy, createdFor: createdFor },
+      }),
+    });
+    console.log(JSON.stringify(response));
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const updateWinner = async (winner: string, address: string) => {
+  try {
+    const response = await fetch("/api/game", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "WINNER",
+        data: { winner: winner, address: address },
+      }),
+    });
+    console.log(JSON.stringify(response));
+  } catch (error) {
+    console.error(error);
+  }
+};
+export const formatTime = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${minutes.toString().padStart(2, "0")}:${secs
+    .toString()
+    .padStart(2, "0")}`;
 };

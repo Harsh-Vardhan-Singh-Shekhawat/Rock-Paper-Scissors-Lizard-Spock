@@ -9,7 +9,6 @@ import {
 import _default from "next/dist/build/templates/pages";
 import { ethers } from "ethers";
 import RPSContractData from "../utils/RPSContractData";
-import { toBytes } from "viem";
 
 interface ActiveUser {
   _id: string;
@@ -20,25 +19,33 @@ const CreateGame = () => {
   const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
   const account = useAccount();
   const [otherPlayer, setOtherPlayer] = useState("");
-  const [move, setMove] = useState<Move>();
+  const [move, setMove] = useState<Move>(Move.Null);
   const [ethValue, setEthValue] = useState();
-  const [salt, setSalt] = useState("");
+  const [salt, setSalt] = useState<bigint>();
   const [canCreateGame, setCanCreateGame] = useState(false);
   const [creatingGameLoader, setCreateingGameLoader] = useState(false);
   const { data: walletClient } = useWalletClient();
+
+  const reset = () => {
+    setOtherPlayer("");
+    setMove(Move.Null);
+    setEthValue(undefined);
+    setSalt(undefined);
+    setCanCreateGame(false);
+  };
 
   useEffect(() => {
     const configCanUserCreateGame = async () => {
       try {
         if (account.status !== "connected") return;
         const createGameData = localStorage.getItem("game");
+        console.log("game data ");
+        console.log(createGameData);
         // user haven't createad a game yet
-
         if (createGameData === null) {
-          console.log("null value from local database");
           const dbData = await fetchCurrentGame(account.address);
-          console.log("dbData : ", dbData);
-          if (dbData) {
+          console.log("db data : ", dbData);
+          if (dbData === undefined) {
             setCanCreateGame(true);
           }
         }
@@ -47,6 +54,9 @@ const CreateGame = () => {
       }
     };
     configCanUserCreateGame();
+
+    const intervalId = setInterval(configCanUserCreateGame, 8000);
+    return () => clearInterval(intervalId);
   }, [account.status]);
 
   const createGame = async () => {
@@ -64,22 +74,25 @@ const CreateGame = () => {
           signer
         );
         const valueInWei = ethers.parseEther(ethValue || "0");
+        const _move = Move[move] as unknown as bigint;
         const deployementTx = await contractFactory.deploy(
-          ethers.keccak256(toBytes(Move[move as number] + salt)),
+          ethers.solidityPackedKeccak256(["uint8", "uint256"], [_move, salt]),
           otherPlayer,
           {
             value: valueInWei,
           }
         );
+        const response = await deployementTx.waitForDeployment();
 
         const time = new Date();
+
         const data = {
           move: move,
-          salt: salt,
+          salt: salt?.toString() ?? "",
           ethValue: ethValue,
           otherPlayer: otherPlayer,
-          contractAddress: await deployementTx.getAddress(),
-          deploymentTime: time,
+          contractAddress: await response.getAddress(),
+          deploymentTime: time.toString(),
         };
         localStorage.setItem("game", JSON.stringify(data));
         window.dispatchEvent(new Event("storage"));
@@ -88,8 +101,10 @@ const CreateGame = () => {
           time.toString(),
           (account.address ?? "").toString(),
           otherPlayer,
-          await deployementTx.getAddress()
+          await response.getAddress(),
+          valueInWei.toString()
         );
+        reset();
         setCreateingGameLoader(false);
       } catch (error) {
         console.error(error);
@@ -97,8 +112,9 @@ const CreateGame = () => {
       }
     }
   };
+
   const generateSalt = async () => {
-    setSalt(generateRandomUint256().toString());
+    setSalt(generateRandomUint256());
   };
 
   useEffect(() => {
@@ -115,7 +131,7 @@ const CreateGame = () => {
       }
     };
     fetchActiveUsers();
-    const intervalId = setInterval(fetchActiveUsers, 11000);
+    const intervalId = setInterval(fetchActiveUsers, 8000);
 
     return () => clearInterval(intervalId);
   }, []);
@@ -129,7 +145,13 @@ const CreateGame = () => {
         ) : (
           <div className="flex flex-col">
             {activeUsers.map((user) => (
-              <button key={user._id}>
+              <button
+                key={user._id}
+                onClick={() => {
+                  if (user.address === account.address) return;
+                  setOtherPlayer(user.address);
+                }}
+              >
                 {user.address === account.address
                   ? user.address + " (you)"
                   : user.address}
@@ -173,7 +195,7 @@ const CreateGame = () => {
 
         <div>
           <p>Salt Value</p>
-          <input placeholder="--" value={salt} />
+          <input placeholder="--" value={salt?.toString()} />
           <button onClick={generateSalt}>GEMERATE SALT</button>
         </div>
 
