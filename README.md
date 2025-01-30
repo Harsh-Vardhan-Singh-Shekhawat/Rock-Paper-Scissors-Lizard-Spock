@@ -52,7 +52,7 @@ interface IActiveUser extends Document {
 
 ## Local storage
 
-- <a href="./src/components/CurrentGame.tsx:18" >CurrentGame.ts</a>
+- <a href="./src/components/CurrentGame.tsx" >CurrentGame.ts</a>
 
 ```typescript
 interface IGameSelfCreated {
