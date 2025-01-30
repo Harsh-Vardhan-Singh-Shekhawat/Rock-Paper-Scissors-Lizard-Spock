@@ -32,7 +32,6 @@ const CreateGame = () => {
     setMove(Move.Null);
     setEthValue(undefined);
     setSalt(undefined);
-    setCanCreateGame(false);
   };
 
   useEffect(() => {
@@ -205,7 +204,7 @@ const CreateGame = () => {
           <p className="sub-heading">Salt Value</p>
           <input
             placeholder="--"
-            value={salt?.toString()}
+            value={salt !== undefined ? salt?.toString() : ""}
             className="input-tag"
             disabled={true}
           />
@@ -218,7 +217,7 @@ const CreateGame = () => {
           <p className="sub-heading">Enter ETH amount to stake</p>
           <input
             type="number"
-            value={ethValue}
+            value={ethValue !== undefined ? ethValue : ""}
             onChange={(e: any) => {
               setEthValue(e.target.value);
             }}

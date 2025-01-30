@@ -1,3 +1,8 @@
+## Operations
+
+- Browser : **Brave**
+- Testnet : **Holesky**
+
 ## Building Rock-Paper-Scissors-Spock-Lizard Game
 
 - <a href="./src/utils/RPS.sol" >RPS.sol</a>
@@ -6,7 +11,10 @@
 ## Salt Generation Function
 
 - Salt is securely generated using entropy from the operating system.
-- reference -> https://en.wikipedia.org/wiki/Cryptographically_secure_pseudorandom_number_generator
+
+  - Windows: Uses Cryptographic APIs, hardware features and system events.
+  - Linux: Primarily relies on the `getrandom` syscall and `/dev/urandom` which provides random bytes generate from different system events .
+  - macOS: Utilizes the `getentropy` function along with potential hardware sources.
 
 - <a href="./src/utils/Helpers.ts" >file reference</a>
 
