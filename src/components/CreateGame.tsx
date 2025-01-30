@@ -210,7 +210,7 @@ const CreateGame = () => {
             disabled={true}
           />
           <button onClick={generateSalt} className="button-tag">
-            GEMERATE SALT
+            GENERATE SALT
           </button>
         </div>
 

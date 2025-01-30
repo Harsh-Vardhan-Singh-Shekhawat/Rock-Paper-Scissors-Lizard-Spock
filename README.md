@@ -23,3 +23,44 @@ export const generateRandomUint256 = (): bigint => {
   return uint256;
 };
 ```
+
+## Mongodb database storage for notifications
+
+- <a href="./src/utils/Game.ts" >Game.ts</a>
+
+```typescript
+export interface IGame extends Document {
+  time: string;
+  createdBy: string;
+  createdFor: string;
+  contractAddress: string;
+  ethValue: string;
+  isPlayed: boolean;
+  winner: string;
+  j1Timeout: boolean;
+  j2Timeout: boolean;
+}
+```
+
+- <a href="./src/utils/ActiveUser.ts" >ActiveUsers.ts</a>
+
+```typescript
+interface IActiveUser extends Document {
+  address: string;
+}
+```
+
+## Local storage
+
+- <a href="./src/components/CurrentGame.tsx:18" >CurrentGame.ts</a>
+
+```typescript
+interface IGameSelfCreated {
+  move: string;
+  salt: string;
+  ethValue: string;
+  otherPlayer: string;
+  contractAddress: string;
+  deploymentTime: string;
+}
+```
