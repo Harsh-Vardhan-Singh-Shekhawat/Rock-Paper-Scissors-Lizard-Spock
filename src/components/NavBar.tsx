@@ -36,7 +36,7 @@ const NavBar = () => {
   });
 
   return (
-    <div className=" bg-gray-200 py-4 px-12 flex flex-row items-center	 justify-between ">
+    <div className="bg-gray-200 py-4 px-12 flex flex-row items-center justify-between ">
       <div />
       <ConnectButton />
     </div>

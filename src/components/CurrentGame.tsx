@@ -128,6 +128,12 @@ const CurrentGame = () => {
               reset();
               return;
             }
+
+            // you did the timeout, then reset the data
+            if (!gameData.j2Timeout && gameDataFetched.j2Timeout) {
+              reset();
+              return;
+            }
           }
 
           setGameData(gameDataFetched);
@@ -172,6 +178,12 @@ const CurrentGame = () => {
               gameCreatedForYou.createdBy,
               gameCreatedForYou.createdFor
             );
+            reset();
+            return;
+          }
+
+          // you did the timeout then reset the data
+          if (!gameCreatedForYou.j1Timeout && gameDataFetched.j1Timeout) {
             reset();
             return;
           }
